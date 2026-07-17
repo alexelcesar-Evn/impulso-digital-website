@@ -75,27 +75,14 @@ function Brand({ compact = false }) {
   </div>;
 }
 
-function Header({ mobilePreview, onToggleMobile, lang, onLanguage, isMobileDevice }) {
+function Header({ mobilePreview, onToggleMobile, lang, onLanguage, isMobileDevice, desktopMode, onToggleDesktop }) {
   return <header className="topbar">
     <Brand compact />
     <div className="utility-buttons" aria-label={lang === 'es' ? 'Opciones rápidas' : 'Quick options'}>
       <button type="button" className={lang === 'es' ? 'is-active' : ''} onClick={() => onLanguage('es')}>ES</button><button type="button" className={lang === 'en' ? 'is-active' : ''} onClick={() => onLanguage('en')}>EN</button>
-      {!isMobileDevice && <button type="button" className={`mobile-mode ${mobilePreview ? 'is-active' : ''}`} onClick={onToggleMobile}>{lang === 'es' ? 'VERSIÓN CELULAR' : 'MOBILE VERSION'}</button>}
+      {isMobileDevice ? <button type="button" className={`desktop-mode ${desktopMode ? 'is-active' : ''}`} onClick={onToggleDesktop}>{desktopMode ? (lang === 'es' ? 'VERSIÓN CELULAR' : 'MOBILE VERSION') : (lang === 'es' ? 'VERSIÓN DESKTOP' : 'DESKTOP VERSION')}</button> : <button type="button" className={`mobile-mode ${mobilePreview ? 'is-active' : ''}`} onClick={onToggleMobile}>{lang === 'es' ? 'VERSIÓN CELULAR' : 'MOBILE VERSION'}</button>}
     </div>
   </header>;
-}
-
-function ViewModeToggle({ isMobileDevice, desktopMode, onToggleDesktop, lang }) {
-  if (!isMobileDevice) return null;
-  return <button
-    type="button"
-    className={`view-mode-toggle ${desktopMode ? 'is-desktop' : 'is-mobile'}`}
-    onClick={onToggleDesktop}
-    aria-label={desktopMode ? (lang === 'es' ? 'Volver a la versión celular' : 'Return to mobile version') : (lang === 'es' ? 'Abrir versión desktop' : 'Open desktop version')}
-  >
-    <MonitorSmartphone />
-    <span>{desktopMode ? (lang === 'es' ? 'VERSIÓN CELULAR' : 'MOBILE VERSION') : (lang === 'es' ? 'VERSIÓN DESKTOP' : 'DESKTOP VERSION')}</span>
-  </button>;
 }
 
 function WheelItem({ section, index, active, wheelRotation, onSelect }) {
@@ -273,6 +260,6 @@ function Footer({ active, onChange, sections, lang }) { return <footer className
 
 function Starfield() { const ref=useRef(null); useEffect(()=>{const c=ref.current,ctx=c.getContext('2d');let f;const stars=Array.from({length:95},()=>({x:Math.random(),y:Math.random(),a:Math.random()*.45+.1,s:Math.random()*1.1+.25}));const resize=()=>{c.width=innerWidth*devicePixelRatio;c.height=innerHeight*devicePixelRatio};const draw=()=>{ctx.clearRect(0,0,c.width,c.height);stars.forEach(st=>{ctx.globalAlpha=st.a;ctx.fillStyle='#9ed7ff';ctx.beginPath();ctx.arc(st.x*c.width,st.y*c.height,st.s*devicePixelRatio,0,Math.PI*2);ctx.fill()});f=requestAnimationFrame(draw)};resize();draw();addEventListener('resize',resize);return()=>{cancelAnimationFrame(f);removeEventListener('resize',resize)}},[]);return <canvas className="starfield" ref={ref}/>; }
 
-function App(){const[active,setActive]=useState('inicio');const[mobilePreview,setMobilePreview]=useState(false);const[lang,setLang]=useState('es');const[isMobileDevice]=useState(()=>typeof window!=='undefined'&&window.innerWidth<=760);const[desktopMode,setDesktopMode]=useState(false);const sections=lang==='en'?sectionsEn:sectionsEs;useEffect(()=>{document.documentElement.lang=lang},[lang]);useEffect(()=>{const viewport=document.querySelector('meta[name=\"viewport\"]');if(!viewport)return;viewport.setAttribute('content',desktopMode?'width=1440':'width=device-width, initial-scale=1.0');requestAnimationFrame(()=>window.dispatchEvent(new Event('resize')));window.scrollTo({top:0,left:0,behavior:'auto'});},[desktopMode]);return <div className={`system-shell ${mobilePreview?'mobile-preview':''} ${desktopMode?'force-desktop':''}`}><Starfield/><div className="grain"/><div className="ambient-light"/><Header mobilePreview={mobilePreview} onToggleMobile={()=>setMobilePreview(v=>!v)} lang={lang} onLanguage={setLang} isMobileDevice={isMobileDevice}/><MechanicalWheel active={active} onChange={setActive} sections={sections} lang={lang}/><MobileNavigation active={active} onChange={setActive} sections={sections} lang={lang}/><ViewModeToggle isMobileDevice={isMobileDevice} desktopMode={desktopMode} onToggleDesktop={()=>setDesktopMode(v=>!v)} lang={lang}/><ContentPanel active={active} onNavigate={setActive} lang={lang}/><RightPanel active={active} onNavigate={setActive} lang={lang}/><Footer active={active} onChange={setActive} sections={sections} lang={lang}/></div>}
+function App(){const[active,setActive]=useState('inicio');const[mobilePreview,setMobilePreview]=useState(false);const[lang,setLang]=useState('es');const[isRealMobile]=useState(()=>typeof window!=='undefined'&&(window.innerWidth<=760||((navigator.maxTouchPoints||0)>0&&window.matchMedia('(pointer: coarse)').matches&&(screen.width<=932||screen.height<=932))));const[desktopMode,setDesktopMode]=useState(false);const scrollStageRef=useRef(null);const sections=lang==='en'?sectionsEn:sectionsEs;useEffect(()=>{document.documentElement.lang=lang},[lang]);useEffect(()=>{const viewport=document.querySelector('meta[name=\"viewport\"]');if(!viewport)return;viewport.setAttribute('content',desktopMode&&!isRealMobile?'width=1440':'width=device-width, initial-scale=1.0');requestAnimationFrame(()=>window.dispatchEvent(new Event('resize')));window.scrollTo({top:0,left:0,behavior:'auto'});},[desktopMode,isRealMobile]);const changeSection=id=>{setActive(id);if(typeof window!=='undefined'&&!desktopMode&&(isRealMobile||window.matchMedia('(max-width: 760px)').matches)){requestAnimationFrame(()=>scrollStageRef.current?.scrollTo({top:0,left:0,behavior:'smooth'}));}};return <div className={`system-shell ${mobilePreview?'mobile-preview':''} ${desktopMode&&!isRealMobile?'force-desktop':''} ${isRealMobile?'real-mobile':''}`}><Starfield/><div className="grain"/><div className="ambient-light"/><Header mobilePreview={mobilePreview} onToggleMobile={()=>setMobilePreview(v=>!v)} lang={lang} onLanguage={setLang} isMobileDevice={isRealMobile} desktopMode={false} onToggleDesktop={()=>{}}/><MechanicalWheel active={active} onChange={changeSection} sections={sections} lang={lang}/><MobileNavigation active={active} onChange={changeSection} sections={sections} lang={lang}/><div className="mobile-scroll-stage" ref={scrollStageRef}><ContentPanel active={active} onNavigate={changeSection} lang={lang}/><RightPanel active={active} onNavigate={changeSection} lang={lang}/></div><Footer active={active} onChange={changeSection} sections={sections} lang={lang}/></div>}
 
 createRoot(document.getElementById('root')).render(<React.StrictMode><App/></React.StrictMode>);
